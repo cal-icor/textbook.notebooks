@@ -16,22 +16,22 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: cal-icor/textbook.notebooks
-          fetch-depth: 0  # Ensures we get full history to check changes
+          path: notebooks_repo
+          fetch-depth: 0
           
       - name: Identify Added Notebooks
         id: detect-new-notebooks
         run: |
-          # Get list of added notebooks from the closed PR
+          cd notebooks_repo
           git diff --name-status HEAD^ HEAD | grep '^A' | awk '{print $2}' | grep '\.ipynb$' > new_notebooks.txt || true
           echo "New Notebooks:"
           cat new_notebooks.txt || echo "No new notebooks found."
-          
-          # Store in GitHub Actions output for later use
           echo "NOTEBOOKS=$(cat new_notebooks.txt | tr '\n' ' ')" >> $GITHUB_ENV
 
       - name: Convert Notebooks to MyST
         run: |
           pip install jupytext
+          cd notebooks_repo
           for nb in $NOTEBOOKS; do
             jupytext "$nb" --to myst
           done
@@ -40,18 +40,20 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: cal-icor/textbook
-          token: ${{ secrets.GH_TOKEN }}  # Requires write permission
+          path: md_repo
+          token: ${{ secrets.TEXTBOOK_REPO_PAT }}
 
-      - name: Sync requirements.txt and _toc.yml to modules/ only
+      - name: Sync requirements.txt and _toc.yml to modules/
         run: |
-          cp requirements.txt modules/requirements.txt
-          cp _toc.yml modules/_toc.yml
+          cp notebooks_repo/requirements.txt md_repo/modules/requirements.txt
+          cp notebooks_repo/_toc.yml md_repo/modules/_toc.yml
 
       - name: Move Converted MyST Files to Modules
         run: |
+          cd notebooks_repo
           for nb in $NOTEBOOKS; do
             md_file="${nb%.ipynb}.md"
-            mv "$md_file" modules/
+            mv "$md_file" ../md_repo/modules/
           done
 
       - name: Commit and Push Changes
@@ -60,11 +62,11 @@ jobs:
           git config --global user.email "jonathanferrari@berkeley.edu"
 
           git add modules/requirements.txt modules/_toc.yml
-          git add modules/*.md
+          git add modules/*.md  # Add all converted MyST files
 
           if git diff --staged --quiet; then
             echo "No changes detected, skipping commit."
           else
-            git commit -m "Sync notebooks updates: modules/requirements.txt, modules/_toc.yml, and new MyST notebooks"
+            git commit -m "Sync updates: modules/requirements.txt, modules/_toc.yml, and new MyST notebooks"
             git push
           fi
