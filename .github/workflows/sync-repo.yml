@@ -41,7 +41,7 @@ jobs:
         with:
           repository: cal-icor/textbook
           path: md_repo
-          token: ${{ secrets.TEXTBOOK_REPO_PAT }}
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Sync requirements.txt and _toc.yml to modules/
         run: |
