@@ -1,0 +1,70 @@
+name: Sync Notebooks to Markdown Repo
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+jobs:
+  sync-to-md-repo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Notebooks Repo
+        uses: actions/checkout@v4
+        with:
+          repository: cal-icor/textbook.notebooks
+          fetch-depth: 0  # Ensures we get full history to check changes
+          
+      - name: Identify Added Notebooks
+        id: detect-new-notebooks
+        run: |
+          # Get list of added notebooks from the closed PR
+          git diff --name-status HEAD^ HEAD | grep '^A' | awk '{print $2}' | grep '\.ipynb$' > new_notebooks.txt || true
+          echo "New Notebooks:"
+          cat new_notebooks.txt || echo "No new notebooks found."
+          
+          # Store in GitHub Actions output for later use
+          echo "NOTEBOOKS=$(cat new_notebooks.txt | tr '\n' ' ')" >> $GITHUB_ENV
+
+      - name: Convert Notebooks to MyST
+        run: |
+          pip install jupytext
+          for nb in $NOTEBOOKS; do
+            jupytext "$nb" --to myst
+          done
+
+      - name: Checkout Markdown Repo
+        uses: actions/checkout@v4
+        with:
+          repository: cal-icor/textbook
+          token: ${{ secrets.GH_TOKEN }}  # Requires write permission
+
+      - name: Sync requirements.txt and _toc.yml to modules/ only
+        run: |
+          cp requirements.txt modules/requirements.txt
+          cp _toc.yml modules/_toc.yml
+
+      - name: Move Converted MyST Files to Modules
+        run: |
+          for nb in $NOTEBOOKS; do
+            md_file="${nb%.ipynb}.md"
+            mv "$md_file" modules/
+          done
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "jonathanferrari"
+          git config --global user.email "jonathanferrari@berkeley.edu"
+
+          git add modules/requirements.txt modules/_toc.yml
+          git add modules/*.md
+
+          if git diff --staged --quiet; then
+            echo "No changes detected, skipping commit."
+          else
+            git commit -m "Sync notebooks updates: modules/requirements.txt, modules/_toc.yml, and new MyST notebooks"
+            git push
+          fi
