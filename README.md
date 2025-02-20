@@ -177,6 +177,7 @@ This repository is licensed under the MIT License. See [LICENSE](LICENSE) for de
 
 ## 🛠 Need Help?
 
-If you encounter any issues, feel free to ask for help by opening an issue or reaching out to jonathanferrari AT berkeley.edu.  
+If you encounter any issues, feel free to ask for help by opening an issue or reaching out to jonathanferrari AT berkeley.edu.
+
 
 📌 **Reminder:** PRs that do not follow these guidelines may be rejected.  
