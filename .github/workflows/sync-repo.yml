@@ -58,6 +58,7 @@ jobs:
 
       - name: Commit and Push Changes
         run: |
+          cd md_repo
           git config --global user.name "jonathanferrari"
           git config --global user.email "jonathanferrari@berkeley.edu"
 
