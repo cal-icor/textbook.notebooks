@@ -3,7 +3,7 @@
 #### 1️⃣ **Data Repository Submission**  
 - [ ] I have uploaded all necessary data files and scripts to the **data repository**: [Data Repository](https://github.com/cal-icor/textbook.data)  
 - [ ] I have created a **pull request** in the data repository and linked it below:  
-  - **Data PR:** [Insert link here]  
+  - **Data PR:** [textbook.data PR](https://github.com/cal-icor/textbook.data/blob/main/.github/pull_request_template.md)
 
 #### 2️⃣ **Notebook Updates**  
 - [ ] My notebook **references data files via URLs** instead of local file paths  
