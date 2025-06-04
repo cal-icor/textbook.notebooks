@@ -27,7 +27,7 @@ jobs:
         id: detect-new-notebooks
         run: |
           cd notebooks_repo
-          git diff --name-status HEAD^ HEAD | grep '^A' | awk '{print $2}' | grep '\.ipynb$' > new_notebooks.txt || true
+          git diff --name-status HEAD^ HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '\.ipynb$' > new_notebooks.txt || true
           echo "New Notebooks:"
           cat new_notebooks.txt || echo "No new notebooks found."
           echo "NOTEBOOKS=$(cat new_notebooks.txt | tr '\n' ' ')" >> $GITHUB_ENV
