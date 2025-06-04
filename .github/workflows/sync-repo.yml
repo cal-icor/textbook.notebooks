@@ -6,9 +6,13 @@ on:
       - closed
     branches:
       - main
+  push:
+    branches:
+      - main
 
 jobs:
   sync-to-md-repo:
+    if: github.event_name != 'push' || github.actor == 'jonathanferrari'
     runs-on: ubuntu-latest
 
     steps:
