@@ -9,13 +9,13 @@
 - [ ] My notebook **references data files via URLs** instead of local file paths  
   - Example:  
     ```python
-    pd.read_csv("https://cal-icor.github.io/textbook.data/<YOUR_COURSE_NAME>/your_file.csv")
+    pd.read_csv("https://cal-icor.github.io/textbook.data/<YOUR_INTITUTION_NAME>/<YOUR_COURSE_NAME>/your_file.csv")
     ```
 - [ ] If my notebook imports a local Python script, I have used `httpimport`  
   - Example:  
     ```python
     import httpimport
-    with httpimport.remote_repo("https://cal-icor.github.io/textbook.data/<YOUR_COURSE_NAME>"):
+    with httpimport.remote_repo("https://cal-icor.github.io/textbook.data/<YOUR_INTITUTION_NAME>/<YOUR_COURSE_NAME>"):
         import my_script
     ```
 
