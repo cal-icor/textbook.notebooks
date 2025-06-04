@@ -14,6 +14,10 @@ parts:
   chapters:
   - file: espm-regression
   - file: espm-island
+- caption: Engineering
+  numbered: true
+  chapters:
+  - file: engin-7-numerical
 - caption: Data Science
   numbered: true
   chapters:
