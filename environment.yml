@@ -10,3 +10,5 @@ dependencies:
   - datascience
   - statsmodels
   - scipy
+  - seaborn
+  - scikit-learn
