@@ -2,57 +2,83 @@ name: Sync Notebooks to Markdown Repo
 
 on:
   pull_request:
-    types:
-      - closed
-    branches:
-      - main
+    types: [closed]
+    branches: [main]
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   sync-to-md-repo:
+    # Allow pushes from jonathanferrari, or any pull-request close event
     if: github.event_name != 'push' || github.actor == 'jonathanferrari'
     runs-on: ubuntu-latest
 
     steps:
+      # 0) Check out this (orchestrator) repo so we have the normaliser script
+      - name: Checkout orchestrator repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 1) Check out the notebooks repo
       - name: Checkout Notebooks Repo
         uses: actions/checkout@v4
         with:
           repository: cal-icor/textbook.notebooks
           path: notebooks_repo
           fetch-depth: 0
-          
-      - name: Identify Added Notebooks
+
+      # 2) Install dependencies
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install nbformat jupytext
+
+      # 3) Normalise headings inside every .ipynb (in place)
+      - name: Normalise headings in notebooks
+        run: |
+          set -euo pipefail
+          find notebooks_repo -type f -name '*.ipynb' -print0 \
+            | xargs -0 python .github/scripts/normalize-headings.py -v
+          echo "✅ All notebook headings normalised"
+
+      # 4) Identify notebooks that changed in this commit
+      - name: Identify added/modified notebooks
         id: detect-new-notebooks
         run: |
           cd notebooks_repo
-          git diff --name-status HEAD^ HEAD | grep -E '^[AM]' | awk '{print $2}' | grep '\.ipynb$' > new_notebooks.txt || true
-          echo "New Notebooks:"
+          git diff --name-status HEAD^ HEAD \
+            | grep -E '^[AM]' \
+            | awk '{print $2}' \
+            | grep '\.ipynb$' > new_notebooks.txt || true
           cat new_notebooks.txt || echo "No new notebooks found."
-          echo "NOTEBOOKS=$(cat new_notebooks.txt | tr '\n' ' ')" >> $GITHUB_ENV
+          echo "NOTEBOOKS=$(tr '\n' ' ' < new_notebooks.txt)" >> "$GITHUB_ENV"
 
-      - name: Convert Notebooks to MyST
+      # 5) Convert those notebooks to MyST Markdown
+      - name: Convert notebooks to MyST
         run: |
-          pip install jupytext
           cd notebooks_repo
           for nb in $NOTEBOOKS; do
             jupytext "$nb" --to myst
           done
 
+      # 6) Check out the Markdown (site) repo
       - name: Checkout Markdown Repo
         uses: actions/checkout@v4
         with:
           repository: cal-icor/textbook
           path: md_repo
           token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 0
 
-      - name: Sync requirements.txt and _toc.yml to modules/
+      # 7) Sync requirements.txt and _toc.yml
+      - name: Sync requirements.txt and _toc.yml
         run: |
           cp notebooks_repo/requirements.txt md_repo/modules/requirements.txt
-          cp notebooks_repo/_toc.yml md_repo/modules/_toc.yml
+          cp notebooks_repo/_toc.yml        md_repo/modules/_toc.yml
 
-      - name: Move Converted MyST Files to Modules
+      # 8) Move converted .md files into the site repo
+      - name: Move converted MyST files
         run: |
           cd notebooks_repo
           for nb in $NOTEBOOKS; do
@@ -60,18 +86,25 @@ jobs:
             mv "$md_file" ../md_repo/modules/
           done
 
-      - name: Commit and Push Changes
+      # 9) Normalise headings inside all MyST Markdown files
+      - name: Normalise headings in Markdown
+        run: |
+          find md_repo/modules -type f -name '*.md' -print0 \
+            | xargs -0 python .github/scripts/normalize-headings.py -v
+
+      # 10) Commit and push changes
+      - name: Commit and push changes
         run: |
           cd md_repo
-          git config --global user.name "jonathanferrari"
+          git config --global user.name  "jonathanferrari"
           git config --global user.email "jonathanferrari@berkeley.edu"
 
           git add modules/requirements.txt modules/_toc.yml
-          git add modules/*.md  # Add all converted MyST files
+          git add modules/*.md
 
           if git diff --staged --quiet; then
-            echo "No changes detected, skipping commit."
+            echo "No changes detected – skipping commit."
           else
-            git commit -m "Sync updates: modules/requirements.txt, modules/_toc.yml, and new MyST notebooks"
+            git commit -m "Sync notebooks → MyST (heading-normalised)"
             git push
           fi
